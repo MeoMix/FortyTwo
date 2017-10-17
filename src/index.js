@@ -24,57 +24,62 @@ const pendingQueries = {};
 // const channel = new Channel();
 
 (async () => {
-  await state.load();
-  const bot = new Bot(state.coins.get(`bitcoin`));
-
-  bot.on('message', async ({ channel, username, userId, words }) => {
-    try {
-      let query = pendingQueries[userId];
-
-      if(query){
-        const result = query.setChosenCoin(words[0]);
-        if(result.isCancelled || result.isSuccessful){
-          delete pendingQueries[userId];
+  try {
+    await state.load();
+    const bot = new Bot(state.coins.get(`bitcoin`));
+  
+    bot.on('message', async ({ channel, username, userId, words }) => {
+      try {
+        let query = pendingQueries[userId];
+  
+        if(query){
+          const result = query.setChosenCoin(words[0]);
+          if(result.isCancelled || result.isSuccessful){
+            delete pendingQueries[userId];
+          }
+  
+          if(result.isCancelled){
+            channel.send('Query cancelled.');
+            return;
+          }
+  
+          if(!result.isSuccessful){
+            channel.send(`Sorry. I didn't understand your choice. Please select a valid option or say 'cancel'`);
+            return;
+          }
+        } else {
+          query = new Query({ username, words, coins: state.coins });
+          
+          if(query.needsCoinConfirmation){
+            const confirm = query.coinConfirmations[0];
+            channel.send(`<@${userId}> - The symbol ${confirm.coins[0].symbol} matches ${confirm.coins.length} coins. Please clarify by responding with a number, or say 'cancel':\n${map(confirm.coins, (coin, index) => `${index + 1}. ${coin.name}\n`).join('')}`);
+            pendingQueries[userId] = query;
+            return;
+          }
         }
-
-        if(result.isCancelled){
-          channel.send('Query cancelled.');
+  
+        const actionTypes = [BuyAction, SellAction, CoinDetailsAction, PositionsAction, CallAction, WatchAction, CalcAction, HelpAction, TimeAction, CalendarAction];
+        const Action = find(actionTypes, { type: query.type });
+        if (!Action) return;
+  
+        const action = new Action(query, state);
+  
+        const validationError = action.validate ? await action.validate() : '';
+        if (validationError) {
+          channel.send(validationError);
           return;
         }
-
-        if(!result.isSuccessful){
-          channel.send(`Sorry. I didn't understand your choice. Please select a valid option or say 'cancel'`);
-          return;
-        }
-      } else {
-        query = new Query({ username, words, coins: state.coins });
-        
-        if(query.needsCoinConfirmation){
-          const confirm = query.coinConfirmations[0];
-          channel.send(`<@${userId}> - The symbol ${confirm.coins[0].symbol} matches ${confirm.coins.length} coins. Please clarify by responding with a number, or say 'cancel':\n${map(confirm.coins, (coin, index) => `${index + 1}. ${coin.name}\n`).join('')}`);
-          pendingQueries[userId] = query;
-          return;
-        }
+  
+        channel.send(await action.execute());
+      } catch (error) {
+        console.error(error);
       }
+  
+    });
+  
+    await bot.login();
+  } catch(error){
+    console.error(error);
+  }
 
-      const actionTypes = [BuyAction, SellAction, CoinDetailsAction, PositionsAction, CallAction, WatchAction, CalcAction, HelpAction, TimeAction, CalendarAction];
-      const Action = find(actionTypes, { type: query.type });
-      if (!Action) return;
-
-      const action = new Action(query, state);
-
-      const validationError = action.validate ? await action.validate() : '';
-      if (validationError) {
-        channel.send(validationError);
-        return;
-      }
-
-      channel.send(await action.execute());
-    } catch (error) {
-      console.error(error);
-    }
-
-  });
-
-  await bot.login();
 })();
