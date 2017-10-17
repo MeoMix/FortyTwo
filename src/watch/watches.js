@@ -8,7 +8,7 @@ module.exports = class Watches extends Array {
   constructor(...watches) {
     super(...map(watches, Watch.getInstance));
 
-    this.directoryPath = `/discord/bot`;
+    this.directoryPath = `/tmp/discord/bot`;
     this.filePath = `${this.directoryPath}/watches.json`;
   }
   

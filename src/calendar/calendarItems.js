@@ -8,7 +8,7 @@ module.exports = class CalendarItems extends Array {
   constructor(...calendarItems) {
     super(...map(calendarItems, CalendarItem.getInstance));
 
-    this.directoryPath = `/discord/bot`;
+    this.directoryPath = `/tmp/discord/bot`;
     this.filePath = `${this.directoryPath}/calendarItems.json`;
   }
 

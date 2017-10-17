@@ -9,7 +9,7 @@ module.exports = class Positions extends Array {
   constructor(...positions) {
     super(...map(positions, Position.getInstance));
 
-    this.directoryPath = `/discord/bot`;
+    this.directoryPath = `/tmp/discord/bot`;
     this.filePath = `${this.directoryPath}/positions.json`;
   }
 
