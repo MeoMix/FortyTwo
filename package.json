@@ -7,6 +7,10 @@
     "test": "npm run lint && mocha --reporter spec test/setup.js test/**/*Test.js",
     "lint": "eslint --ext .js src test"
   },
+  "engines": {
+    "node": ">=8.5.0",
+    "npm": ">=5.3.0"
+  },
   "author": "",
   "license": "ISC",
   "dependencies": {
