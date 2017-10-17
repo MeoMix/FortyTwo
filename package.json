@@ -1,0 +1,32 @@
+{
+  "name": "fourtytwo",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "npm run lint && mocha --reporter spec test/setup.js test/**/*Test.js",
+    "lint": "eslint --ext .js src test"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ascii-table": "0.0.9",
+    "async-mkdirp": "^1.2.0",
+    "axios": "^0.16.2",
+    "discord.js": "^11.2.1",
+    "erlpack": "github:discordapp/erlpack",
+    "es6-class-mixin": "^1.0.5",
+    "lodash": "^4.17.4",
+    "mathjs": "^3.16.4",
+    "moment": "^2.18.1",
+    "moment-timezone": "^0.5.13",
+    "mz": "^2.7.0",
+    "uws": "^0.14.5"
+  },
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "eslint": "^4.8.0",
+    "mocha": "^3.5.3",
+    "sinon": "^4.0.1"
+  }
+}
