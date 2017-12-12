@@ -1,17 +1,21 @@
 const { prefixPlus } = require('./utility.js');
 const Discord = require('discord.js');
 const EventEmitter = require('events');
+const logger = require('../common/logger.js');
 
 module.exports = class Bot extends EventEmitter {
 
-  constructor(bitcoinCoin) {
+  constructor(bitcoinCoin, bittrexMonitor) {
     super(...arguments);
     
     this.bitcoinCoin = bitcoinCoin;
+    this.bittrexMonitor = bittrexMonitor;
     this.bot = new Discord.Client();
     this.token = 'MzYzNTU1ODk0NzQ0NTgwMTE3.DLDFLA.oj__4cBfaAZ1DBfQlTVI2JGuutc';
     this.bot.on('ready', this.onReady.bind(this));
     this.bot.on('message', message => this.onMessage(message));
+
+    this.bittrexMonitor.on('newCurrency', this.onNewCurrency.bind(this));
   }
 
   login() {
@@ -51,9 +55,16 @@ module.exports = class Bot extends EventEmitter {
         words
       });
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       message.channel.send(error.message);
     }
+  }
+  
+  onNewCurrency(currency){
+    // CryptoNeverSleeps Trading Calls channel.
+    const cnsTradingCalls = this.bot.channels.find('id', '346364834050473984');
+
+    cnsTradingCalls.send(`@everyone **IMPORTANT!!** Bittrex is about to announce ${currency} as tradeable on their exchange. BUY NOW.`);
   }
 
 };

@@ -73,7 +73,7 @@ module.exports = class CallAction {
       username: this.username,
       coinId: this.coin.id,
       price,
-      calledOn: moment()
+      calledOn: moment().format('YYYY-MM-DD HH:mm:ss')
     });
 
     return `${this.username} **called** ${this.coin.symbol} at ${price.toFixed(8)}`;

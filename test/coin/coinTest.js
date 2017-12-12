@@ -1,4 +1,3 @@
-const { expect } = require('chai');
 const Coin = require('../../src/coin/coin.js');
 
 describe(`Coin`, () => {

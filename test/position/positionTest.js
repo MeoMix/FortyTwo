@@ -1,4 +1,3 @@
-const { expect } = require('chai');
 const Position = require('../../src/position/position.js');
 
 describe(`Position`, () => {

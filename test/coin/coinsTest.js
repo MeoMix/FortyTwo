@@ -1,4 +1,3 @@
-const { expect } = require('chai');
 const Coins = require('../../src/coin/coins.js');
 
 describe(`Coins`, () => {
@@ -8,10 +7,6 @@ describe(`Coins`, () => {
   
       expect(coins[0].id).to.equal(1);
     });
-  });
-
-  describe(`load`, () => {
-
   });
 
   describe(`get`, () => {

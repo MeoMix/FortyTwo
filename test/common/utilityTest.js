@@ -1,4 +1,3 @@
-const { expect } = require('chai');
 const utility = require('../../src/common/utility.js');
 
 describe(`utility`, () => {

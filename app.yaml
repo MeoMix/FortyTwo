@@ -1,0 +1,11 @@
+env: flex
+runtime: nodejs
+manual_scaling:
+  instances: 1
+env_variables:
+  SQL_USER: 'root'
+  SQL_PASSWORD: ''
+  SQL_DATABASE: 'fortytwo'
+  INSTANCE_CONNECTION_NAME: fortytwo-183202:us-central1:fortytwo-mysql
+beta_settings:
+  cloud_sql_instances: fortytwo-183202:us-central1:fortytwo-mysql

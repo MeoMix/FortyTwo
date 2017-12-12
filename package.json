@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "start": "node src/index.js",
-    "test": "npm run lint && mocha --reporter spec test/setup.js test/**/*Test.js",
+    "test": "mocha --reporter spec test/setup.js test/**/*Test.js",
     "lint": "eslint --ext .js src test"
   },
   "engines": {
@@ -15,22 +15,28 @@
   "license": "ISC",
   "dependencies": {
     "ascii-table": "0.0.9",
-    "async-mkdirp": "^1.2.0",
     "axios": "^0.16.2",
+    "cheerio": "^1.0.0-rc.2",
     "discord.js": "^11.2.1",
     "erlpack": "github:discordapp/erlpack",
     "es6-class-mixin": "^1.0.5",
     "lodash": "^4.17.4",
+    "logform": "^1.2.1",
     "mathjs": "^3.16.4",
     "moment": "^2.18.1",
     "moment-timezone": "^0.5.13",
-    "mz": "^2.7.0",
-    "uws": "^0.14.5"
+    "mysql": "^2.15.0",
+    "socket.io": "^2.0.4",
+    "socket.io-client": "^2.0.4",
+    "uws": "^0.14.5",
+    "winston": "^3.0.0-rc1"
   },
   "devDependencies": {
     "chai": "^4.1.2",
+    "component-emitter": "^1.2.1",
     "eslint": "^4.8.0",
     "mocha": "^3.5.3",
+    "proxyquire": "^1.8.0",
     "sinon": "^4.0.1"
   }
 }

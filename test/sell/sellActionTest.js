@@ -1,4 +1,3 @@
-const { expect } = require('chai');
 const SellAction = require('../../src/sell/sellAction.js');
 
 describe(`SellAction`, () => {

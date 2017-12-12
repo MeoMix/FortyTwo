@@ -1,5 +1,6 @@
 const axios = require('axios');
-const { map } = require('lodash');
+const { map, pickBy, groupBy, values, maxBy, reject, flatten, includes } = require('lodash');
+const cheerio = require('cheerio');
 
 module.exports = class CoinmarketcapApi {
 
@@ -8,9 +9,9 @@ module.exports = class CoinmarketcapApi {
   }
 
   async getTickers() {
-    const { data } = await axios.get(`${this._baseUrl}/ticker`);
+    const { data } = await axios.get(`${this._baseUrl}/ticker/?limit=0`);
 
-    return map(data, tickerDto => {
+    const tickers = map(data, tickerDto => {
       return {
         id: tickerDto.id,
         name: tickerDto.name,
@@ -26,6 +27,33 @@ module.exports = class CoinmarketcapApi {
         total_supply: parseFloat(tickerDto.total_supply)
       };
     });
+
+    // There might be duplicate symbols represented in tickers because some trash coins
+    // share the same symbol as legitimate coins. Filter out the trash coins by selecting highest volume.
+    const duplicateTickerSets = values(pickBy(groupBy(tickers, 'symbol'), group => group.length > 1));
+    const excludedTickers = flatten(map(duplicateTickerSets, tickerSet => reject(tickerSet, maxBy(tickerSet, 'volume'))));
+
+    return reject(tickers, ticker => includes(excludedTickers, ticker));
+  }
+
+  async getExchanges(coinId){
+    const { data } = await axios.get(`https://coinmarketcap.com/currencies/${coinId}/`);
+    const $ = cheerio.load(data);
+
+    const exchangeRows = $('#markets-table').find('td:nth-child(2)').slice(0, 5);
+    const tradedPairRows = $('#markets-table').find('td:nth-child(3) a').slice(0, 5);
+
+    const exchanges = tradedPairRows.map((index, element) => {
+      const $element = $(element);
+
+      return {
+        exchangeName: $(exchangeRows[index]).text(),
+        pairName: $element.text(),
+        href: $element.attr('href')
+      };
+    }).get();
+
+    return exchanges;
   }
 
 };

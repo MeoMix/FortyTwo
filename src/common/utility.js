@@ -1,22 +1,7 @@
 const { isNumber, isArray } = require('lodash');
-const fs = require('mz/fs');
 
 const utility = {
   
-  async read(path){
-    const error = await fs.access(path);
-    
-    if(!error){
-      return JSON.parse(await fs.readFile(path, 'utf8'));
-    } else {
-      console.error(error);
-    }
-  },
-
-  async write(path, value){
-    await fs.writeFile(path, JSON.stringify(value), 'utf8');
-  },
-
   prefixPlus(value){
     return (parseFloat(value) > 0) ? `+${value}` : `${value}`;
   },
@@ -66,6 +51,10 @@ const utility = {
 
   toCodeBlock(value){
     return `\`\`\`${isArray(value) ? value.join('') : value}\`\`\``;
+  },
+
+  async sleep(msDelay){
+    return await new Promise(resolve => setTimeout(resolve, msDelay));
   }
 
 };

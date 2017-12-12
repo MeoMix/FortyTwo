@@ -1,15 +1,16 @@
 const QueryType = require('../query/queryType.js');
 const Table = require('../common/table.js');
-const { moneyFormat, prefixPlus } = require('../common/utility.js');
-const { max, sumBy, isNaN, map, orderBy, filter, take } = require('lodash');
+const { moneyFormat, prefixPlus, toCodeBlock } = require('../common/utility.js');
+const { max, sumBy, isNaN, orderBy, filter, take } = require('lodash');
 
 module.exports = class CoinDetailsAction {
 
-  constructor({ values = [], coins = null, flags = [] } = {}, { coins: allCoins = null } = {}) {
+  constructor({ values = [], coins = null, flags = [] } = {}, { coins: allCoins = null, coinmarketcapApi } = {}) {
     this.values = values;
     this.coins = coins;
     this.flags = flags;
     this.allCoins = allCoins;
+    this.coinmarketcapApi = coinmarketcapApi;
 
     this.isAll = flags.includes('A');
   }
@@ -24,7 +25,13 @@ module.exports = class CoinDetailsAction {
 
   async execute() {
     if (this.coins.length) {
-      return map(this.coins, this._getCoinMessage.bind(this)).join('\n');
+      const promises = this.coins.map(async (coin) => {
+        return await this._getCoinMessage(coin);
+      });
+
+      const messages = await Promise.all(promises);
+
+      return messages.join('\n\n');
     } else {
       return this._getMarketMessage();
     }
@@ -43,7 +50,7 @@ module.exports = class CoinDetailsAction {
     return `\`Total Market Cap: $${moneyFormat(sumBy(this.allCoins, coin => coin.market_cap_usd || 0))}\` \n ${table}`;
   }
 
-  _getCoinMessage(coin) {
+  async _getCoinMessage(coin) {
     const nameSymbolMessage = `**${coin.name} (${coin.symbol})**  •  `;
     const priceBtcMessage = coin.symbol === `BTC` ? `` : `\`${coin.price_btc.toFixed(8)} BTC\`  ⇄  `;
     const priceUsdMessage = `\`$${coin.price_usd.toFixed(3)}\``;
@@ -73,9 +80,12 @@ module.exports = class CoinDetailsAction {
     const rowTwo = `\n${oneDayChangeLabel}`;
     const rowThree = `\n${sevenDayChangeLabel}`;
 
-    const fullChangeMessage = `${headers}\n${divider}${rowOne} ${rowTwo} ${rowThree}`;
+    const exchanges = await this.coinmarketcapApi.getExchanges(coin.id);
+    const rows = exchanges.map(({ exchangeName, href }) => `${exchangeName.padEnd(10)} <${href}>`);
+    const fullChangeMessage = toCodeBlock(`${headers}\n${divider}${rowOne} ${rowTwo} ${rowThree}`);
 
-    return `${message}\n \`\`\`${fullChangeMessage}\`\`\``;
+    // NOTE: Space is necessary or code block causes message to drop closing `
+    return `${message} ${fullChangeMessage}${rows.join('\n')}`;
   }
 
   _getChangeIcon(changeValue) {

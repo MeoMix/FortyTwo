@@ -1,4 +1,3 @@
-const { expect } = require('chai');
 const PositionsAction = require('../../src/position/positionsAction.js');
 
 describe(`PositionsAction`, () => {

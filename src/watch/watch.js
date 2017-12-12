@@ -1,6 +1,7 @@
 module.exports = class Watch {
 
-  constructor({ username, coinId } = {}) {
+  constructor({ id = 0, username = '', coinId = '' } = {}) {
+    this.id = id;
     this.username = username;
     this.coinId = coinId;
   }

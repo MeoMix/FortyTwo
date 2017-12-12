@@ -1,4 +1,3 @@
-const { expect } = require('chai');
 const Call = require('../../src/call/call.js');
 
 describe(`Call`, () => {

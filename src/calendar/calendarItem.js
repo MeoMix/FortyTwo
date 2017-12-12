@@ -2,10 +2,11 @@ const moment = require('moment');
 
 module.exports = class CalendarItem {
 
-  constructor({ username = '', notes = '', date = null } = {}) {
+  constructor({ id = 0, username = '', notes = '', date = null } = {}) {
+    this.id = id;
     this.username = username;
     this.notes = notes;
-    this.date = date ? moment(date) : date;
+    this.date = date ? moment(date).format('YYYY-MM-DD HH:mm:ss') : date;
   }
 
   static getInstance(calendarItem) {

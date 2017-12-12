@@ -1,6 +1,5 @@
 const QueryType = require('./queryType.js');
-const CoinConfirmation = require('../common/coinConfirmation.js');
-const { map, filter, find, groupBy } = require('lodash');
+const { map, filter, find } = require('lodash');
 
 module.exports = class Query {
 
@@ -12,30 +11,7 @@ module.exports = class Query {
     this.values = map(filter(words, word => !this._isCommand(word)), value => value.trim().toUpperCase());
 
     this.coins = filter(coins, ({ symbol, name }) => find(this.values, value => symbol === value || name.toUpperCase() === value));
-
-    const duplicateCoinsBySymbol = filter(groupBy(this.coins, 'symbol'), coins => coins.length > 1);
-    this.coinConfirmations = map(duplicateCoinsBySymbol, duplicates => new CoinConfirmation(...duplicates));
     this.coin = this.coins.length === 1 ? this.coins[0] : null;
-  }
-
-  get needsCoinConfirmation(){
-    return this.coinConfirmations.length > 0 && this.type !== QueryType.None;
-  }
-
-  setChosenCoin(word){
-    const isCancelled = word.toUpperCase() === 'CANCEL';   
-    if(isCancelled){
-      return { isSuccessful: false, isCancelled };
-    }
-  
-    const choice = parseInt(word);
-    const chosenCoin = this.coinConfirmations[0].coins[choice - 1];
-    if(!chosenCoin){
-      return { isSuccessful: false, isCancelled };
-    }
-  
-    this.coin = chosenCoin;
-    return { isSuccessful: true, isCancelled };
   }
 
   _getQueryType(query) {

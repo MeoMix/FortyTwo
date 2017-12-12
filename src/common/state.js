@@ -1,12 +1,13 @@
 module.exports = class State {
 
-  constructor(coins, calls, watches, positions, calendarItems, api) {
+  constructor(coins, calls, watches, positions, calendarItems, coinmarketcapApi, bittrexMonitor) {
     this.coins = coins;
     this.calls = calls;
     this.watches = watches;
     this.positions = positions;
     this.calendarItems = calendarItems;
-    this.api = api;
+    this.coinmarketcapApi = coinmarketcapApi;
+    this.bittrexMonitor = bittrexMonitor;
     this.refreshInterval = null;
   }
 
@@ -15,6 +16,7 @@ module.exports = class State {
     await this.calls.load();
     await this.watches.load();
     await this.calendarItems.load();
+    await this.bittrexMonitor.initialize();
 
     await this.refresh();
     clearInterval(this.refreshInterval);
@@ -22,7 +24,7 @@ module.exports = class State {
   }
 
   async refresh() {
-    const tickers = await this.api.getTickers();
+    const tickers = await this.coinmarketcapApi.getTickers();
 
     for (const ticker of tickers) {
       this.coins.addOrUpdateCoin(ticker);

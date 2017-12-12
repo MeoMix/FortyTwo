@@ -1,4 +1,3 @@
-const { expect } = require('chai');
 const State = require('../../src/common/state.js');
 
 describe(`State`, () => {

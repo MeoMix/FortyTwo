@@ -1,4 +1,3 @@
-const { expect } = require('chai');
 const Watch = require('../../src/watch/watch.js');
 
 describe(`Watch`, () => {

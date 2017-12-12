@@ -1,4 +1,3 @@
-const { expect } = require('chai');
 const CalcAction = require('../../src/calc/calcAction.js');
 const Coins = require('../../src/coin/coins.js');
 
@@ -20,15 +19,15 @@ describe(`CalcAction`, () => {
       expect(message.includes(4000)).to.equal(true);
     });
 
-    it(`should successfully handle parenthesis around a variable a variable`, async () => {
-      const calcAction = new CalcAction({ words: ['(BTC_price_usd)'] }, { coins: new Coins({ symbol: 'BTC', price_usd: 4000 }) });
+    it(`should successfully handle parenthesis around a variable`, async () => {
+      const calcAction = new CalcAction({ words: ['(BTC_price_usd', '*', '5.0)'] }, { coins: new Coins({ symbol: 'BTC', price_usd: 4000 }) });
       const message = await calcAction.execute();
 
-      expect(message.includes(4000)).to.equal(true);
+      expect(message.includes(20000)).to.equal(true);
     });
 
     it(`should be case insensitive`, async () => {
-      const calcAction = new CalcAction({ words: ['(Btc_pRIce_usd)'] }, { coins: new Coins({ symbol: 'BTC', price_usd: 4000 }) });
+      const calcAction = new CalcAction({ words: ['(Btc_pRIce_usd', '*', '5.0)'] }, { coins: new Coins({ symbol: 'BTC', price_usd: 4000 }) });
       const message = await calcAction.execute();
 
       expect(message.includes(4000)).to.equal(true);

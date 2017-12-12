@@ -1,6 +1,8 @@
 # Private data should not be commited to repo.
 privateData.json
 
+cloud_sql_proxy.exe
+
 # Logs
 logs
 *.log

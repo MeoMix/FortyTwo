@@ -1,7 +1,7 @@
 
 const { toCodeBlock } = require('./utility.js');
 const AsciiTable = require('ascii-table');
-const { times, constant, map, isString } = require('lodash');
+const { times, constant, isString } = require('lodash');
 
 module.exports = class Table {
 
@@ -11,7 +11,7 @@ module.exports = class Table {
 
   setHeading(headings){
     this.headings = headings;
-    this.table.setHeading(map(headings, heading => isString(heading) ? heading : heading.value));
+    this.table.setHeading(headings.map(heading => isString(heading) ? heading : heading.value));
   }
 
   getRows(){

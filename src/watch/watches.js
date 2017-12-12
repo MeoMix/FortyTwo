@@ -1,34 +1,32 @@
 const Watch = require('./watch.js');
-const { read, write } = require('../common/utility.js');
+const { getAllEntities, createEntity, deleteEntity } = require('../common/database.js');
 const { map, remove } = require('lodash');
-const mkdirp = require('async-mkdirp');
 
 module.exports = class Watches extends Array {
 
   constructor(...watches) {
     super(...map(watches, Watch.getInstance));
-
-    this.directoryPath = `/tmp/discord/bot`;
-    this.filePath = `${this.directoryPath}/watches.json`;
   }
   
   async load() {
-    await mkdirp(this.directoryPath);
-
     this.length = 0;
-    this.push(await read(this.filePath), Watch.getInstance);
+    this.push(await getAllEntities('watch'), Watch.getInstance);
   }
 
   async add(watch) {
-    this.push(Watch.getInstance(watch));    
-    await write(this.filePath, this);
+    const watchInstance = Watch.getInstance(watch);
+    watchInstance.id = await createEntity(`watch`, watchInstance);
+    this.push(watchInstance);
 
-    return this[this.length - 1];
+    return watchInstance;
   }
 
   async remove(username, coinId){
-    remove(this, { username, coinId });
-    await write(this.filePath, this);
+    const removedEntities = remove(this, { username, coinId });
+
+    for(const entity of removedEntities){
+      await deleteEntity(`watch`, entity.id);
+    }
   }
 
 };

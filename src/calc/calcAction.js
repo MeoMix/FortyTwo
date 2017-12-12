@@ -1,8 +1,11 @@
 const QueryType = require('../query/queryType.js');
 const { toCodeBlock } = require('../common/utility.js');
 const math = require('mathjs');
-const { map, find } = require('lodash');
+const { map, filter } = require('lodash');
 
+// Calculator utility. Integrates with external math library to perform
+// a variety of math operations. Allows for the use of variables referencing
+// properties of Coins.
 module.exports = class CalcAction {
 
   constructor({ words = [] } = {}, { coins = null } = {}) {
@@ -26,7 +29,7 @@ module.exports = class CalcAction {
 
   async execute() {
     const equation = this._getEquation();
- 
+
     let result;
     try {
       result = `${equation} = ${math.eval(equation)}`;
@@ -37,25 +40,24 @@ module.exports = class CalcAction {
     return toCodeBlock(`${result}`);
   }
 
-  _getEquation(){
+  _getEquation(){        
+    // TODO: Symbol isn't uniquely identifying. I need a way of prompting user for clarification.
     const symbols = map(this.coins, 'symbol');
 
     return map(this.words, word => this._replaceVariable(word, symbols)).join(' ');
   }
 
-  _replaceVariable(word, symbols){
-    const upperWord = word.toUpperCase();
+  _replaceVariable(word){
+    // Determine the subset of coinProperties which are represented in the given word by
+    // performing a case-insensitive test to see if `word` contains `property`.
+    const filteredProperties = filter(this.coinProperties, property => (new RegExp(property, `i`)).test(word));
+    const filteredCoins = filter(this.coins, ({ symbol }) => (new RegExp(symbol, `i`)).test(word));
 
-    for(const coinProperty of this.coinProperties){
-      const upperCoinProperty = coinProperty.toUpperCase();
-      
-      if(!upperWord.includes(upperCoinProperty)) continue;
-
-      for(const symbol of symbols){
-        if(upperWord.includes(`${symbol}_${upperCoinProperty}`)){
-          // TODO: Symbol isn't uniquely identifying. I need a way of prompting user for clarification.
-          return find(this.coins, { symbol })[coinProperty];
-        }
+    // Replace all coin.symbol_property variables with corresponding values.
+    for(const property of filteredProperties){
+      for(const coin of filteredCoins){
+        const regExp = new RegExp(`${coin.symbol}_${property}`, `ig`);
+        word = word.replace(regExp, coin[property]);
       }
     }
 

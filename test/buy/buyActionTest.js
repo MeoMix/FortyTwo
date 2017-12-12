@@ -1,4 +1,3 @@
-const { expect } = require('chai');
 const BuyAction = require('../../src/buy/buyAction.js');
 const Coin = require('../../src/coin/coin.js');
 const Positions = require('../../src/position/positions.js');

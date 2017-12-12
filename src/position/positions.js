@@ -1,33 +1,32 @@
 const Position = require('./position.js');
-const { read, write } = require('../common/utility.js');
+const { getAllEntities, deleteEntity, createEntity, updateEntity } = require('../common/database.js');
 const { map, remove, filter, find } = require('lodash');
 const moment = require('moment');
-const mkdirp = require('async-mkdirp');
 
 module.exports = class Positions extends Array {
 
   constructor(...positions) {
     super(...map(positions, Position.getInstance));
-
-    this.directoryPath = `/tmp/discord/bot`;
-    this.filePath = `${this.directoryPath}/positions.json`;
   }
 
   async increase(coinId, username, price, amount) {
     let position = this.get(coinId, username);
 
     if (!position) {
+      // TODO: Sloppy. No need to create and then update after.
+      // TODO: add vs create
       position = await this.add({
         coinId,
         username,
         price,
-        purchasedOn: moment()
+        purchasedOn: moment().format('YYYY-MM-DD HH:mm:ss')
       });
     }
 
     position.price = ((position.price * position.amount) + (price * amount)) / (position.amount + amount);
     position.amount += amount;
-    await write(this.filePath, this);
+
+    await updateEntity(`position`, position);
   }
 
   async decrease(coinId, username, amount) {
@@ -46,8 +45,8 @@ module.exports = class Positions extends Array {
     } else {
       position.amount -= amount;
     }
-
-    await write(this.filePath, this);
+    
+    await updateEntity(`position`, position);
 
     return { amount };
   }
@@ -60,7 +59,8 @@ module.exports = class Positions extends Array {
     }
 
     remove(this, { coinId, username });
-    await write(this.filePath, this);
+    await deleteEntity(`position`, position.id);
+
     return { amount: position.amount };
   }
 
@@ -77,17 +77,16 @@ module.exports = class Positions extends Array {
   }
 
   async load() {
-    await mkdirp(this.directoryPath);
-
     this.length = 0;
-    this.push(...map(await read(this.filePath), Position.getInstance));
+    this.push(...map(await getAllEntities('position'), Position.getInstance));
   }
 
   async add(position) {
-    this.push(Position.getInstance(position));
-    await write(this.filePath, this);
+    const positionInstance = Position.getInstance(position);
+    positionInstance.id = await createEntity(`position`, positionInstance);
+    this.push(positionInstance);
 
-    return this[this.length - 1];
+    return positionInstance;
   }
 
 };

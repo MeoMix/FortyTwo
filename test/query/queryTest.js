@@ -1,4 +1,3 @@
-const { expect } = require('chai');
 const Query = require('../../src/query/query.js');
 
 describe(`Query`, () => {
