@@ -1,18 +1,18 @@
 const axios = require('axios');
 const logger = require('../common/logger.js');
 
-module.exports = class BittrexApi {
+module.exports = class KucoinApi {
 
   constructor(){
-    this._baseUrl = `https://bittrex.com/api/v1.1`;
+    this._baseUrl = `https://api.kucoin.com/v1`;
   }
 
   async getMarkets(){
-    const marketDtos = await this._get(`public/getmarkets`);
+    const marketDtos = await this._get(`market/open/symbols`);
     return marketDtos.map(marketDto => {
       return {
-        symbol: marketDto.MarketCurrency,
-        baseSymbol: marketDto.BaseCurrency
+        symbol: marketDto.coinType,
+        baseSymbol: marketDto.coinTypePair
       };
     });
   }
@@ -22,13 +22,13 @@ module.exports = class BittrexApi {
 
     logger.info(`Requesting ${url} with params:`, params);
     const response = await axios.get(url, { params });
-    const { success, message, result } = response.data;
+    const { success, msg, data } = response.data;
 
     if (success) {
-      return result;
+      return data;
     }
     
-    throw new Error(message);
+    throw new Error(msg);
   }
 
 };

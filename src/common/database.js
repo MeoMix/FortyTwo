@@ -1,76 +1,43 @@
-const mysql = require('mysql');
+const Sequelize = require('sequelize');
 const logger = require('../common/logger.js');
 
-const isProduction = process.env.NODE_ENV === 'production';
-const config = {
-  user: isProduction ? process.env.SQL_USER : 'root',
-  password: isProduction ? process.env.SQL_PASSWORD : '',
-  database: isProduction ? process.env.SQL_DATABASE : 'fortytwo',
-};
+module.exports = class Database {
 
-if (process.env.INSTANCE_CONNECTION_NAME && isProduction) {
-  config.socketPath = `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`;
-}
-
-const connection = mysql.createConnection(config);
-
-module.exports = {
-
-  async createEntity(tableName, domainEntity){
-    if(domainEntity.id){
-      logger.error(`Failed to create entity for ${tableName}. Id already set.`);
-      return;
-    }
-
-    return await new Promise((resolve, reject) => {
-      connection.query(`INSERT INTO \`${tableName}\` SET ?`, domainEntity, (error, results) => {
-        if(error){
-          reject(error);
-        } else {
-          resolve(results.insertId);
-        }
-      });
+  constructor(){
+    const sequelize = new Sequelize(process.env.DB_DATABASE, process.env.DB_USERNAME, process.env.DB_PASSWORD, {
+      // Improve security and hide a deprecation warning by limiting operator aliases.
+      // http://docs.sequelizejs.com/manual/tutorial/querying.html#operators-security
+      operatorsAliases: false,
+      dialect: 'mysql',
+      dialectOptions: {
+        socketPath: process.env.DB_SOCKET_PATH,
+        // Change MySql2 decimals response from string to Number. Not as worried about precision for now
+        decimalNumbers: true
+      },
+      define: {     
+        // Prevent sequelize from pluralizing table names
+        freezeTableName: true,
+        // Prevent sequelize from requiring 'createdAt' timestamp column
+        timestamps: false
+      }
     });
-  },
 
-  async updateEntity(tableName, domainEntity){
-    if(!domainEntity.id){
-      logger.error(`Failed to update entity for ${tableName}. No id.`);
-      return;
-    }
+    this.sequelize = sequelize;
+  }
 
-    return await new Promise((resolve, reject) => {
-      connection.query(`UPDATE \`${tableName}\` SET ? WHERE id = ${domainEntity.id}`, domainEntity, (error, results) => {
-        if(error){
-          reject(error);
-        } else {
-          resolve(results);
-        }
-      });
-    });
-  },
+  async connect(){
+    return new Promise(async (resolve, reject) => {
+      try {
+        logger.info(`Connecting to database ${process.env.DB_DATABASE} as ${process.env.DB_USERNAME}`);
 
-  async deleteEntity(tableName, id){
-    return await new Promise((resolve, reject) => {
-      connection.query(`DELETE FROM \`${tableName}\` where id = ${id}`, (error, results) => {
-        if(error){
-          reject(error);
-        } else {
-          resolve(results);
-        }
-      });
-    });
-  },
+        await this.sequelize.authenticate();
 
-  async getAllEntities(tableName){
-    return await new Promise((resolve, reject) => {
-      connection.query(`SELECT * FROM \`${tableName}\``, (error, results) => {
-        if(error){
-          reject(error);
-        } else {
-          resolve(results);
-        }
-      });
+        logger.debug('Sequelize authenticated');
+        resolve();
+      } catch (error){
+        logger.error(`Failed to connect to database`);
+        reject(error);
+      }
     });
   }
 

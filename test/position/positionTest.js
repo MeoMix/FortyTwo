@@ -13,7 +13,7 @@ describe(`Position`, () => {
       const position = new Position();
 
       expect(position.coinId).to.equal('');
-      expect(position.username).to.equal('');
+      expect(position.userId).to.equal('');
       expect(position.price).to.equal(0);
       expect(position.amount).to.equal(0);
       expect(position.purchasedOn).to.equal(null);
@@ -23,7 +23,7 @@ describe(`Position`, () => {
       const position = new Position({ coinId: `BMC` });
 
       expect(position.coinId).to.equal(`BMC`);
-      expect(position.username).to.equal('');
+      expect(position.userId).to.equal('');
       expect(position.price).to.equal(0);
       expect(position.amount).to.equal(0);
       expect(position.purchasedOn).to.equal(null);

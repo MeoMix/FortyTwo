@@ -12,19 +12,21 @@ module.exports = class Coins extends Array {
   }
 
   add(coin) {
+    if (this.get(coin.id)){
+      console.warn(`Coin with id ${coin.id} already added`);
+      return;
+    }
+    
     this.push(Coin.getInstance(coin));
     return this[this.length - 1];
   }
 
-  addOrUpdateCoin({ id, name, symbol, price_btc, price_usd, percent_change_1h, percent_change_24h, percent_change_7d, volume, market_cap_usd, available_supply, total_supply  }) {
+  update({ id, price_btc, price_usd, percent_change_1h, percent_change_24h, percent_change_7d, volume, market_cap_usd, available_supply, total_supply }){
     let coin = this.get(id);
 
-    if (!coin) {
-      coin = this.add({
-        id: id,
-        name: name,
-        symbol: symbol
-      });
+    if (!coin){
+      console.warn(`Coin with id ${id} not found`);
+      return;
     }
 
     coin.price_btc = price_btc;

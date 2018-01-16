@@ -1,4 +1,3 @@
-const QueryType = require('../query/queryType.js');
 const { toCodeBlock } = require('../common/utility.js');
 const math = require('mathjs');
 const { map, filter } = require('lodash');
@@ -8,7 +7,9 @@ const { map, filter } = require('lodash');
 // properties of Coins.
 module.exports = class CalcAction {
 
-  constructor({ words = [] } = {}, { coins = null } = {}) {
+  constructor({ words = [] } = {}, coins) {
+    if(!coins || !coins.length) throw new Error(`CalcAction expects coins`);
+
     this.words = words;
     this.coins = coins;
 
@@ -24,8 +25,6 @@ module.exports = class CalcAction {
       'total_supply'
     ];
   }
-
-  static get type() { return QueryType.Calc; }
 
   async execute() {
     const equation = this._getEquation();

@@ -1,7 +1,8 @@
 module.exports = class Channel {
 
-  constructor(channel){
-    this.channel = channel;
+  constructor({ id, isCallChannel } = {}){
+    this.id = id;
+    this.isCallChannel = isCallChannel;
   }
 
 };

@@ -1,6 +1,3 @@
-# Private data should not be commited to repo.
-privateData.json
-
 cloud_sql_proxy.exe
 
 # Logs
@@ -61,7 +58,6 @@ typings/
 
 # dotenv environment variables file
 .env
-
 
 .DS_Store
 dist/

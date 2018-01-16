@@ -1,28 +1,54 @@
 const CoinDetailsAction = require('../../src/coin/coinDetailsAction.js');
-// const Query = require('../../src/query/query.js');
-// const State = require('../../src/common/state.js');
-// const Coin = require('../../src/coin/coin.js');
+const Coin = require('../../src/coin/coin.js');
 
 describe(`CoinDetailsAction`, () => {
   
   describe(`constructor`, () => {
     it(`should instantiate without error and initialize default values`, () => {
-      const coinDetailsAction = new CoinDetailsAction();
+      const coinDetailsAction = new CoinDetailsAction({}, [{}], {});
 
       expect(coinDetailsAction).not.to.be.null;
     });
   });
 
-  // describe(`execute`, () => {
-  //   it(`should output a message`, async () => {
-  //     const coinDetailsAction = new CoinDetailsAction(new Query({
-  //       coin: new Coin()
-  //     }), new State());
+  describe(`validate`, () => {
+    it(`should return an error if not given a coin to query`, async () => {
+      const coinDetailsAction = new CoinDetailsAction({
+        values: ['BTC']
+      }, [{}], {});
 
-  //     const message = await coinDetailsAction.execute();
+      const result = await coinDetailsAction.validate();
 
-  //     expect(message.length).to.be.greaterThan(0);
-  //   });
-  // });
+      expect(result).to.equal(`Invalid query. No coins found.`);
+    });
+  });
+
+  describe(`execute`, () => {
+    it(`should return a market message if no coins given`, async () => {
+      const coinDetailsAction = new CoinDetailsAction({
+        coins: []
+      }, [{}], {});
+
+      const message = await coinDetailsAction.execute();
+
+      expect(message.includes(`Total Market Cap`)).to.be.true;
+    });
+
+    it(`should return a list of coin summaries if given coins`, async () => {
+      const coinDetailsAction = new CoinDetailsAction({
+        coins: [new Coin({
+          symbol: 'FOO',
+          price_btc: .001,
+          price_usd: 0,
+          percent_change_24h: 0
+        })]
+      }, [{}], {});
+
+      const message = await coinDetailsAction.execute();
+
+      expect(message.includes(`Total Market Cap`)).to.be.false;
+      expect(message.length).to.be.greaterThan(0);
+    });
+  });
 
 });

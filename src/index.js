@@ -1,43 +1,56 @@
+const Database = require('./common/database.js');
 const CoinmarketcapApi = require('./common/coinmarketcapApi.js');
 const BittrexApi = require('./common/bittrexApi.js');
-const BittrexMonitor = require('./monitor/bittrexMonitor.js');
-const State = require('./common/state.js');
+const KucoinApi = require('./common/kucoinApi.js');
+const BinanceApi = require('./common/binanceApi.js');
+const ExchangeMonitor = require('./monitor/exchangeMonitor.js');
+const Exchange = require('./monitor/exchange.js');
+const CoinStateRefresher = require('./coin/coinStateRefresher.js');
 const Query = require('./query/query.js');
-const BuyAction = require('./buy/buyAction.js');
-const SellAction = require('./sell/sellAction.js');
 const Coins = require('./coin/coins.js');
-const CoinDetailsAction = require('./coin/coinDetailsAction.js');
-const Positions = require('./position/positions');
-const PositionsAction = require('./position/positionsAction.js');
-const Calls = require('./call/calls.js');
-const CallAction = require('./call/callAction.js');
-const Watches = require('./watch/watches.js');
-const WatchAction = require('./watch/watchAction.js');
-const CalcAction = require('./calc/calcAction.js');
-const HelpAction = require('./help/helpAction.js');
-const TimeAction = require('./time/timeAction.js');
-const CalendarAction = require('./calendar/calendarAction.js');
-const CalendarItems = require('./calendar/calendarItems.js');
+const GdaxApi = require('./common/gdaxApi.js');
 const Bot = require('./common/bot.js');
+const ActionFactory = require('./common/actionFactory.js');
 const logger = require('./common/logger.js');
-const { find } = require('lodash');
-
-const state = new State(new Coins(), new Calls(), new Watches(), new Positions(), new CalendarItems(), new CoinmarketcapApi(), new BittrexMonitor(new BittrexApi()));
+const memwatch = require('memwatch-next');
+const CoinDetailsView = require('./coin/coinDetailsView.js');
+const ChannelDao = require('./channel/channelDao.js');
+const { find, filter } = require('lodash');
 
 (async () => {
+  
   try {
-    await state.load();
-    const bot = new Bot(state.coins.get(`bitcoin`), state.bittrexMonitor);
-  
-    bot.on('message', async ({ channel, username, words }) => {
+    memwatch.on('leak', info => console.log('Leaking:', info));
+
+    logger.info('Initializing');
+    const database = new Database();
+    await database.connect();
+
+    logger.info('Loading coin state');       
+    const coinmarketcapApi = new CoinmarketcapApi();
+    const coins = new Coins();
+    const coinStateRefresher = new CoinStateRefresher(coins, coinmarketcapApi, new GdaxApi());
+    await coinStateRefresher.refresh();
+    coinStateRefresher.startRefreshing();
+
+    logger.info('Creating bot');
+    const bot = new Bot(coins.get(`bitcoin`));
+
+    bot.on('message', async ({ channel, guild, user, words }) => {
       try {
-        const query = new Query({ username, words, coins: state.coins });
-        const actionTypes = [BuyAction, SellAction, CoinDetailsAction, PositionsAction, CallAction, WatchAction, CalcAction, HelpAction, TimeAction, CalendarAction];
-        const Action = find(actionTypes, { type: query.type });
-        if (!Action) return;
-  
-        const action = new Action(query, state);
-  
+        logger.info('Message received');
+        const query = new Query({ channelId: channel ? channel.id : '', guildId: guild ? guild.id : '', user, words, coins });
+
+        // Lazy-load scraped coin data because it's too expensive to load all at once.
+        // TODO: Move all of this into a database rather than loading JIT.
+        for(const coin of filter(query.coins, coin => !coin.exchanges.length)){
+          coin.exchanges = await coinmarketcapApi.getExchanges(coin.id);
+        }
+
+        const actionFactory = new ActionFactory(query, coins, database, bot);
+        const action = actionFactory.getAction();
+        if (!action) return;
+
         const validationError = action.validate ? await action.validate() : '';
         if (validationError) {
           channel.send(validationError);
@@ -46,12 +59,50 @@ const state = new State(new Coins(), new Calls(), new Watches(), new Positions()
   
         channel.send(await action.execute());
       } catch (error) {
-        logger.error(error);
+        logger.error(error.message);
+        console.error(error);
       }
-  
     });
-  
+
+    logger.info(`Initializing monitoring`);
+    const bittrexExchange = new Exchange('Bittrex', new BittrexApi());
+    await bittrexExchange.loadSymbols();
+
+    const binanceExchange = new Exchange('Binance', new BinanceApi());
+    await binanceExchange.loadSymbols();
+
+    const kucoinExchange = new Exchange('Kucoin', new KucoinApi());
+    await kucoinExchange.loadSymbols();
+
+    const exchangeMonitor = new ExchangeMonitor([bittrexExchange, binanceExchange, kucoinExchange]);
+    exchangeMonitor.on('newSymbol', async ({ exchangeName, symbol }) => {
+      const channelDao = new ChannelDao(database);
+      const callChannels = await channelDao.getCallChannels();
+
+      for(const channel of callChannels){
+        bot.sendMessage(channel.id, `@everyone **IMPORTANT!!** ${exchangeName} has added ${symbol} to their API.`);
+
+        const coin = find(coins, { symbol });
+        if(coin){
+          // Lazy-load scraped coin data because it's too expensive to load all at once.
+          // TODO: Move all of this into a database rather than loading JIT.
+          if(!coin.exchanges.length) {
+            coin.exchanges = await coinmarketcapApi.getExchanges(coin.id);
+          }
+          
+          const coinDetailsView = new CoinDetailsView(coin, false, true);
+          bot.sendMessage(channel.id, coinDetailsView.render());
+        } else {
+          logger.warn(`Failed to find coin with symbol ${symbol}`);
+        }
+      }
+    });
+    await exchangeMonitor.startMonitoring();
+
+    logger.info('Logging in');
     await bot.login();
+
+    logger.info('Waiting for messages');
   } catch(error){
     logger.error(error);
   }

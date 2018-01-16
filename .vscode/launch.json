@@ -8,7 +8,8 @@
       "request": "launch",
       "program": "${workspaceFolder}\\src\\index.js",
       "console": "integratedTerminal",
-      "skipFiles": ["<node_internals>/**"]
+      "skipFiles": ["<node_internals>/**"],
+      "envFile": "${workspaceFolder}/.env"
     },
     {
       "name": "Run mocha",
@@ -18,7 +19,8 @@
       "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
       "console": "integratedTerminal",
       "skipFiles": ["<node_internals>/**"],
-      "args": ["${workspaceFolder}/test/setup.js", "${workspaceFolder}/test/**/*Test.js"]
+      "args": ["${workspaceFolder}/test/setup.js", "${workspaceFolder}/test/**/*Test.js"],
+      "envFile": "${workspaceFolder}/.env"
     }
   ]
 }

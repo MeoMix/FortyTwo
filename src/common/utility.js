@@ -1,4 +1,4 @@
-const { isNumber, isArray } = require('lodash');
+const { isFinite, isArray } = require('lodash');
 
 const utility = {
   
@@ -15,7 +15,7 @@ const utility = {
   // Shortens a number by dropping 0's and replacing with B/M/K
   // Example: 1,000,000 -> `1.000 B`
   moneyFormat(value) {
-    if(!isNumber(value)) return `N/A`;
+    if(!isFinite(value)) return `N/A`;
 
     const absValue = Math.abs(value);
 

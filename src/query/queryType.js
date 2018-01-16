@@ -1,7 +1,7 @@
 module.exports = {
   None: 'none',
   CoinDetails: 'coinDetails',
-  Positions: 'positions',
+  Position: 'position',
   Buy: 'buy',
   Sell: 'sell',
   Call: 'call',
@@ -9,5 +9,7 @@ module.exports = {
   Calc: 'calc',
   Help: 'help',
   Time: 'time',
-  Calendar: 'calendar'
+  Calendar: 'calendar',
+  Admin: 'admin',
+  TipJar: 'tipJar'
 };

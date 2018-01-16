@@ -63,7 +63,7 @@ describe(`BittrexMonitor`, () => {
       bittrexMonitor.newestCurrency = 'OMG';
 
       const newCurrencies = [];
-      bittrexMonitor.on('newCurrency', currency => {
+      bittrexMonitor.on('newSymbol', currency => {
         newCurrencies.push(currency);
       });
       await bittrexMonitor.checkCurrencies();

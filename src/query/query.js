@@ -3,9 +3,11 @@ const { map, filter, find } = require('lodash');
 
 module.exports = class Query {
 
-  constructor({ username = '', words = [], coins = null } = {}) {
-    this.username = username;
+  constructor({ user = null, words = [], coins = null, channelId, guildId } = {}) {
+    this.user = user;
     this.words = words;
+    this.channelId = channelId;
+    this.guildId = guildId;
     this.type = this._getQueryType(words.length ? words.shift() : '');
     this.flags = map(filter(words, word => this._isCommand(word)), flag => flag.trim().toUpperCase().replace('-', ''));
     this.values = map(filter(words, word => !this._isCommand(word)), value => value.trim().toUpperCase());
@@ -24,9 +26,9 @@ module.exports = class Query {
     case '!COIN':
     case '!C':
       return QueryType.CoinDetails;
-    case '!POSITIONS':
+    case '!POSITION':
     case '!P':
-      return QueryType.Positions;
+      return QueryType.Position;
     case '!BUY':
     case '!B':
       return QueryType.Buy;
@@ -43,6 +45,10 @@ module.exports = class Query {
       return QueryType.Time;
     case '!CALENDAR':
       return QueryType.Calendar;
+    case '!ADMIN':
+      return QueryType.Admin;
+    case '!TIPJAR':
+      return QueryType.TipJar;
     default:
       return QueryType.None;
     }

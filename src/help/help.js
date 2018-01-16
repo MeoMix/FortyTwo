@@ -11,10 +11,6 @@ module.exports = class Help {
     this.flags = flags;
   }
 
-  static getInstance(help) {
-    return help instanceof Help ? help : new Help(help);
-  }
-
   toString() {
     const examples = map(this.examples, example => `\n  • ${example}`).join('');
     const flags = this.flags ? map(this.flags, flag => `\n  • ${flag}`).join('') : 'None';

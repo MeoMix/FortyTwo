@@ -1,11 +1,17 @@
+# This file is used by Google App Engine to configure a deployed instance of the application.
+# See here for more information:
+#   - https://cloud.google.com/appengine/docs/flexible/nodejs/configuring-your-app-with-app-yaml
 env: flex
 runtime: nodejs
 manual_scaling:
   instances: 1
 env_variables:
-  SQL_USER: 'root'
-  SQL_PASSWORD: ''
-  SQL_DATABASE: 'fortytwo'
-  INSTANCE_CONNECTION_NAME: fortytwo-183202:us-central1:fortytwo-mysql
+  NODE_ENV: 'production'
+  DISCORD_TOKEN: 'MzYzNTU1ODk0NzQ0NTgwMTE3.DLDFLA.oj__4cBfaAZ1DBfQlTVI2JGuutc'
+  DB_HOST: 'fortytwo-183202:us-central1:fortytwo-mysql'
+  DB_USERNAME: 'root'
+  DB_PASSWORD: ''
+  DB_DATABASE: 'fortytwo'
+  DB_SOCKET_PATH: '/cloudsql/fortytwo-183202:us-central1:fortytwo-mysql'
 beta_settings:
   cloud_sql_instances: fortytwo-183202:us-central1:fortytwo-mysql

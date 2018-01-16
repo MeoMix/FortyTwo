@@ -1,18 +1,24 @@
 const { getPercentChange, toFloat } = require('../common/utility.js');
-const QueryType = require('../query/queryType.js');
 const Table = require('../common/table.js');
-const { filter, takeRight } = require('lodash');
 const moment = require('moment');
 
+// TODO: Add concept of pagination to seeing calls.
+// Be able to show page number and total number of pages.
 module.exports = class CallAction {
 
-  constructor( { values = [], username = '', coin = null, flags = [] } = {}, { calls = null, coins = null } = {}) {
+  constructor( { values = [], user = null, coin = null, flags = [], guildId = '' } = {}, coins, bot, callDao) {
+    if(!coins || !coins.length) throw new Error(`CallAction expects coins`);
+    if(!bot) throw new Error(`CallAction expects bot`);
+    if(!callDao) throw new Error(`CallAction expects callDao`);
+
     this.values = values;
-    this.username = username;
+    this.user = user;
+    this.guildId = guildId;
     this.coin = coin;
     this.flags = flags;
-    this.calls = calls;
     this.coins = coins;
+    this.bot = bot;
+    this.callDao = callDao;
 
     this.price = values.length > 1 ? toFloat(values[1]) : 0;
 
@@ -20,8 +26,6 @@ module.exports = class CallAction {
     this.isAll = flags.includes('A');
     this.isSelf = flags.includes('I');
   }
-
-  static get type() { return QueryType.Call; }
 
   async validate() {
     if (this.isDelete && !this.isAll && !this.coin) {
@@ -33,8 +37,9 @@ module.exports = class CallAction {
         return `Price must be greater than zero.`;
       }
 
-      if(this.calls.get(this.coin.id, this.username)){
-        return `You are already calling ${this.coin.symbol}`;
+      const call = await this.callDao.get(this.guildId, this.user.id, this.coinId);
+      if(call){
+        return `You are already calling ${this.coin.symbol}.`;
       }
     }
   }
@@ -50,40 +55,44 @@ module.exports = class CallAction {
     }
 
     if(!this.coin){
-      return this.isSelf ? this._getSelfCalls() : this._getAllCalls();
+      return this.isSelf ? await this._getSelfCalls() : await this._getAllCalls();
     }
     
     return await this._callCoin();
   }
 
   async _deleteAllCalls(){
-    await this.calls.removeByUsername(this.username);
-    return `${this.username} **deleted all** their calls.`;
+    await this.callDao.removeByUserId(this.guildId, this.user.id);
+
+    return `${this.user.username} **deleted all** their calls.`;
   }
 
   async _deleteCoinCall(){
-    await this.calls.remove(this.username, this.coin.id);
-    return `${this.username} **deleted call** ${this.coin.symbol}.`;
+    await this.callDao.remove(this.guildId, this.user.id, this.coin.id);
+
+    return `${this.user.username} **deleted call** ${this.coin.symbol}.`;
   }
 
   async _callCoin(){
     const price = this.price || this.coin.price_btc;
     
-    await this.calls.add({
-      username: this.username,
+    await this.callDao.create({
+      guildId: this.guildId,
+      userId: this.user.id,
       coinId: this.coin.id,
       price,
       calledOn: moment().format('YYYY-MM-DD HH:mm:ss')
     });
 
-    return `${this.username} **called** ${this.coin.symbol} at ${price.toFixed(8)}`;
+    return `${this.user.username} **called** ${this.coin.symbol} at ${price.toFixed(8)}`;
   }
 
-  _getSelfCalls(){
-    const table = new Table(`Calls  •  ${this.username}`);
+  async _getSelfCalls(){
+    const table = new Table(`Calls  •  ${this.user.username}`);
     table.setHeading([' ', 'Symbol', 'Price', '% Change', 'Called On']);
 
-    for (const call of filter(this.calls, { username: this.username })) {
+    const calls = await this.callDao.getByUserId(this.guildId, this.user.id, 15);
+    for (const call of calls) {
       const coin = this.coins.get(call.coinId);
       const change = getPercentChange(coin.price_btc, call.price);
       table.addRow(table.getRows().length + 1, coin.symbol, call.price.toFixed(8), change, moment(call.calledOn).format('MM/DD HH:mm'));
@@ -92,14 +101,23 @@ module.exports = class CallAction {
     return `${table}`;
   }
 
-  _getAllCalls(){
+  async _getAllCalls(){
     const table = new Table(`Calls`);
     table.setHeading([' ', 'User', 'Coin', 'Price', '% Change', 'Called On']);
 
-    for (const call of takeRight(this.calls, 15)) {
+    const calls = await this.callDao.getAll(this.guildId, 15);
+    for (const call of calls) {
       const coin = this.coins.get(call.coinId);
-      const change = getPercentChange(coin.price_btc, call.price);
-      table.addRow(table.getRows().length + 1, call.username, coin.symbol, call.price.toFixed(8), change, moment(call.calledOn).format('MM/DD HH:mm'));
+
+      if(coin) {
+        const change = getPercentChange(coin.price_btc, call.price);
+        const user = this.bot.getUser(call.userId);
+        const username = user ? user.username : `Unknown`;
+  
+        table.addRow(table.getRows().length + 1, username, coin.symbol, call.price.toFixed(8), change, moment(call.calledOn).format('MM/DD HH:mm'));
+      } else {
+        console.warn(`Unknown coin ${call.coinId}`);
+      }
     }
 
     return `${table}`;

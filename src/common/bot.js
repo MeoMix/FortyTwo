@@ -2,38 +2,42 @@ const { prefixPlus } = require('./utility.js');
 const Discord = require('discord.js');
 const EventEmitter = require('events');
 const logger = require('../common/logger.js');
+const User = require('./user.js');
 
 module.exports = class Bot extends EventEmitter {
 
-  constructor(bitcoinCoin, bittrexMonitor) {
+  constructor(bitcoinCoin) {
     super(...arguments);
     
     this.bitcoinCoin = bitcoinCoin;
-    this.bittrexMonitor = bittrexMonitor;
-    this.bot = new Discord.Client();
-    this.token = 'MzYzNTU1ODk0NzQ0NTgwMTE3.DLDFLA.oj__4cBfaAZ1DBfQlTVI2JGuutc';
-    this.bot.on('ready', this.onReady.bind(this));
-    this.bot.on('message', message => this.onMessage(message));
-
-    this.bittrexMonitor.on('newCurrency', this.onNewCurrency.bind(this));
+    this.client = new Discord.Client();
+    this.client.on('ready', this.onReady.bind(this));
+    this.client.on('message', message => this.onMessage(message));
   }
 
+  // Establish a websocket connection from the client to Discord
   login() {
-    this.bot.login(this.token);
+    // Pass a token which represents a proxy of the account used to log in
+    this.client.login(process.env.DISCORD_TOKEN);
   }
 
   setGame(message){
-    this.bot.user.setGame(message);
+    this.client.user.setGame(message);
   }
 
   onReady(){
+    logger.info('Bot ready!');
     this.setGameMessage();
     this.bitcoinCoin.on('change:price_usd', () => this.setGameMessage());
   }
 
   setGameMessage(){
     const message = `BTC: ${this.bitcoinCoin.price_usd.toFixed(0)}, ${prefixPlus(this.bitcoinCoin.percent_change_24h.toFixed(2))}%`;
-    this.bot.user.setGame(message);
+    this.client.user.setGame(message);
+  }
+
+  getUser(userId){
+    return this.client.users.get(userId);
   }
 
   onMessage(message) {
@@ -50,8 +54,8 @@ module.exports = class Bot extends EventEmitter {
     try {
       this.emit('message', {
         channel: message.channel,
-        username,
-        userId: message.author.id,
+        guild: message.guild,
+        user: new User({ id: message.author.id, username }),
         words
       });
     } catch (error) {
@@ -59,12 +63,16 @@ module.exports = class Bot extends EventEmitter {
       message.channel.send(error.message);
     }
   }
-  
-  onNewCurrency(currency){
-    // CryptoNeverSleeps Trading Calls channel.
-    const cnsTradingCalls = this.bot.channels.find('id', '346364834050473984');
 
-    cnsTradingCalls.send(`@everyone **IMPORTANT!!** Bittrex is about to announce ${currency} as tradeable on their exchange. BUY NOW.`);
+  sendMessage(channelId, message){
+    const channel = this.client.channels.find('id', channelId);
+
+    if(!channel){
+      logger.warn(`Failed to find channel with id ${channelId}`);
+      return;
+    }
+
+    channel.send(message);
   }
 
 };
