@@ -15,3 +15,11 @@ env_variables:
   DB_SOCKET_PATH: '/cloudsql/fortytwo-183202:us-central1:fortytwo-mysql'
 beta_settings:
   cloud_sql_instances: fortytwo-183202:us-central1:fortytwo-mysql
+resources:
+  cpu: 1
+  memory_gb: 3
+  disk_size_gb: 10
+skip_files:
+  - ^cloud_functions/*
+  - ^(.*/)?.*\.md$
+  - ^test/*

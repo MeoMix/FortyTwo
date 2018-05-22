@@ -14,24 +14,24 @@ const utility = {
 
   // Shortens a number by dropping 0's and replacing with B/M/K
   // Example: 1,000,000 -> `1.000 B`
-  moneyFormat(value) {
+  moneyFormat(value, decimals = 3) {
     if(!isFinite(value)) return `N/A`;
 
     const absValue = Math.abs(value);
 
     if(absValue >= 1.0e+9){
-      return `${(value / 1.0e+9).toFixed(3)}B`;
+      return `${(value / 1.0e+9).toFixed(decimals)}B`;
     }
 
     if(absValue >= 1.0e+6){
-      return `${(value / 1.0e+6).toFixed(3)}M`;
+      return `${(value / 1.0e+6).toFixed(decimals)}M`;
     }
 
     if(absValue >= 1.0e+3){
-      return `${(value / 1.0e+3).toFixed(3)}K`;
+      return `${(value / 1.0e+3).toFixed(decimals)}K`;
     }
 
-    return value.toFixed(3);
+    return value.toFixed(decimals);
   },
 
   getPercentChange(value1, value2){
@@ -42,11 +42,13 @@ const utility = {
     } else if(value1 < value2){
       change = (value2 - value1) / -value2 * 100;
     }
-    
+
+    return change;
+  },
+
+  getPercentChangeLabel(value1, value2){
     // NOTE: Can't use `this` and support destructuring.
-    change = utility.prefixPlus(change.toFixed(2));
-    
-    return `${change}%`;
+    return `${utility.prefixPlus(utility.getPercentChange(value1, value2).toFixed(2))}%`;
   },
 
   toCodeBlock(value){

@@ -1,5 +1,4 @@
 const { toCodeBlock } = require('../common/utility.js');
-const { map } = require('lodash');
 
 module.exports = class Help {
 
@@ -12,8 +11,8 @@ module.exports = class Help {
   }
 
   toString() {
-    const examples = map(this.examples, example => `\n  • ${example}`).join('');
-    const flags = this.flags ? map(this.flags, flag => `\n  • ${flag}`).join('') : 'None';
+    const examples = this.examples.map(example => `\n  • ${example}`).join('');
+    const flags = this.flags ? this.flags.map(flag => `\n  • ${flag}`).join('') : 'None';
 
     return toCodeBlock(`
 Command: ${this.command}

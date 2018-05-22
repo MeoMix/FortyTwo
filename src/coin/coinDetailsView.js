@@ -1,95 +1,145 @@
-const { moneyFormat, prefixPlus, toCodeBlock } = require('../common/utility.js');
-const { max, isNaN } = require('lodash');
+const { moneyFormat, prefixPlus } = require('../common/utility.js');
+const { isNaN, sortBy, reject, reduce, groupBy, keysIn, find, findLast } = require('lodash');
 
 module.exports = class CoinDetailsView {
 
-  constructor(coin, isGdax, isAll){
-    if(!coin) throw new Error(`CoinDetailsView expects to be initialized with a coin`);
+  constructor({ coins = [], isGdax = false, isLight = false, bitcoin = null, chartUrl = '' } = {}){
+    if(!coins || !coins.length) throw new Error(`CoinDetailsView expects to be initialized with at least one coin`);
  
-    this.coin = coin;
+    this.coins = coins;
     this.isGdax = isGdax;
-    this.isAll = isAll;
+    this.isLight = isLight;
+    this.bitcoin = bitcoin;
+    this.chartUrl = chartUrl;
   }
 
   render(){
-    return this._getMessage(this.coin, this.isGdax, this.isAll);
-  }
-
-  _getMessage(coin, isGdax, isAll){
-    const nameSymbolMessage = `**#${coin.rank}. ${coin.name} (${coin.symbol})**  •  `;
-    const priceBtcMessage = coin.symbol === `BTC` ? `` : `\`${coin.price_btc.toFixed(8)} BTC\`  ⇄  `;
-    const priceUsd = isGdax ? coin.gdaxPrice.toFixed(3) : coin.price_usd.toFixed(3);
-    const priceUsdMessage = `\`$${priceUsd}${isGdax ? ' (GDAX)' : ''}\``;
-    const oneDayChange = isNaN(coin.percent_change_24h) ? `N/A` : `${prefixPlus(coin.percent_change_24h.toFixed(2))}%`;
-    const changeIcon = isNaN(coin.percent_change_24h) ? `` : ` ${this._getChangeIcon(coin.percent_change_24h)}`;
-    const changeMessage = `  •  \`${oneDayChange}\`${changeIcon}`;
-    const volumeMessage = `  •  \`Volume: ${moneyFormat(coin.volume)}\``;
-    const marketCapMessage = `  •  \`Market Cap: ${moneyFormat(coin.market_cap_usd)}\``;
-
-    const message = `${nameSymbolMessage}${priceBtcMessage}${priceUsdMessage}${changeMessage}${volumeMessage}${marketCapMessage}`;
-
-    if (!isAll) {
-      return message;
+    if (this.isLight) {
+      return this._getLightEmbed();
     }
 
-    const oneHourChange = isNaN(coin.percent_change_1h) ? `N/A` : `${prefixPlus(coin.percent_change_1h.toFixed(2))}%`;
-    const sevenDayChange = isNaN(coin.percent_change_7d) ? `N/A` : `${prefixPlus(coin.percent_change_7d.toFixed(2))}%`;
-    const longest = max([oneHourChange.length, oneDayChange.length, sevenDayChange.length]);
-
-    const oneHourChangeLabel = `1H: ${oneHourChange.padStart(longest)}`.padEnd(20);
-    const marketCapLabel = moneyFormat(coin.market_cap_usd).padEnd(20);
-    const oneDayChangeLabel = `1D: ${oneDayChange.padStart(longest)}`.padEnd(20);
-    const sevenDayChangeLabel = `7D: ${sevenDayChange.padStart(longest)}`.padEnd(20);
-
-    const headers = `\n\n${'Change'.padEnd(20)}${'Market Cap'.padEnd(20)}`;
-    const divider = `-`.repeat(30);
-    const rowOne = `\n${oneHourChangeLabel}${marketCapLabel}`;
-    const rowTwo = `\n${oneDayChangeLabel}`;
-    const rowThree = `\n${sevenDayChangeLabel}`;
-
-    const rows = coin.exchanges.map(({ exchangeName, href }) => `${exchangeName.padEnd(10)} <${href}>`);
-    const fullChangeMessage = toCodeBlock(`${headers}\n${divider}${rowOne} ${rowTwo} ${rowThree}`);
-
-    // NOTE: Space is necessary or code block causes message to drop closing `
-    return `${message} ${fullChangeMessage}${rows.join('\n')}`;
+    return this._getFullEmbed(this.coins[0]);
   }
 
-  _getChangeIcon(changeValue) {
+  _getPercentLabel(percentChange){
+    return isNaN(percentChange) ? `N/A` : `${prefixPlus(percentChange.toFixed(2))}%`;
+  }
+
+  _getPriceBtcMessage(coin){
+    const priceBtc = coin.price_usd / this.bitcoin.price_usd;
+    return coin.symbol === `BTC` ? `` : `${priceBtc.toFixed(8)}\u00A0BTC\u00A0\u00A0⇄\u00A0\u00A0`;
+  }
+
+  // TODO: Adjust this to rely on GdaxDao
+  _getPriceUsdMessage(coin){
+    return `$${(this.isGdax ? coin.gdaxPrice : coin.price_usd).toFixed(3)}${this.isGdax ? '\u00A0(GDAX)' : ''}`;
+  }
+
+  // TODO: Coin order doesn't seem to be respected when querying multiple coins.
+  // TODO: It would be nice to have extra white-space between two inline light coin displays.
+  _getLightEmbed(){
+    return {
+      embed: {
+        color: 0x4CAF50,
+        fields: this.coins.map(coin => {    
+          const marketCap = moneyFormat(coin.market_cap_usd, 2);
+          const volume = moneyFormat(coin.volume, 2);
+          const priceBtcMessage = this._getPriceBtcMessage(coin);
+          const priceUsdMessage = this._getPriceUsdMessage(coin);
+          const oneHourChange = this._getPercentLabel(coin.percent_change_1h);
+          const oneHourChangeIcon = this._getChangeIcon(coin.percent_change_1h);
+          const oneDayChange = this._getPercentLabel(coin.percent_change_24h);
+          const oneDayChangeIcon = this._getChangeIcon(coin.percent_change_24h);
+
+          return {
+            inline: true,
+            // TODO: \u00a0 separator only desired for 2+ coins.
+            name: `**[${coin.symbol}]** • ${priceBtcMessage}${priceUsdMessage}\u00a0`,
+            value: `1H: **${oneHourChange}** ${oneHourChangeIcon} M.Cap: **${marketCap}**\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\n24H: **${oneDayChange}** ${oneDayChangeIcon} Volume: **${volume}**\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\n\u200b`
+          };
+        })
+      }
+    };
+  }
+
+  _getFullEmbed(coin){    
+    const marketCap = moneyFormat(coin.market_cap_usd, 2);
+    const volume = moneyFormat(coin.volume, 2);
+    const rank = `${coin.rank}`;
+    const priceBtcMessage = this._getPriceBtcMessage(coin);
+    const priceUsdMessage = this._getPriceUsdMessage(coin);
+    const oneHourChange = this._getPercentLabel(coin.percent_change_1h);
+    const oneDayChange = this._getPercentLabel(coin.percent_change_24h);
+    const oneWeekChange = this._getPercentLabel(coin.percent_change_7d);
+
+    // Take all the markets and pull out the ones which have BTC pairs. Remove related, non-BTC pairs.
+    // For all remaining markets (those which do not have BTC pairs), take the highest volume pair.
+    const btcMarkets = coin.markets.filter(market => market.isBitcoin);
+    const bestBtcMarkets = reduce(groupBy(btcMarkets, 'exchangeName'), (result, markets) => {
+      result.push(sortBy(markets, 'rank')[0]);
+      return result;
+    }, []);
+    const btcExchangeNames = bestBtcMarkets.map(({ exchangeName }) => exchangeName);
+    const altMarkets = reject(coin.markets, ({ exchangeName }) => btcExchangeNames.includes(exchangeName)); 
+    const bestAltMarkets = reduce(groupBy(altMarkets, 'exchangeName'), (result, markets) => {
+      result.push(sortBy(markets, 'rank')[0]);
+      return result;
+    }, []);
+
+    const displayedMarkets = sortBy([...bestBtcMarkets, ...bestAltMarkets], 'rank').slice(0, 4);
+    const maxStatsLength = Math.max(...([rank, marketCap, volume].map(value => value.length)));
+    const maxPriceLength = Math.max(...([oneHourChange, oneDayChange, oneWeekChange].map(value => value.length)));
+
+    return {
+      embed: {
+        color: 0x4CAF50,
+        author: {
+          name: `[${coin.symbol}] • ${priceBtcMessage}${priceUsdMessage}`,
+          url: `https://coinmarketcap.com/currencies/${coin.websiteSlug}/`,
+          icon_url: `https://s2.coinmarketcap.com/static/img/coins/16x16/${coin.id}.png`
+        },
+        title: coin.name,
+        description: `\`\`\`Hourly: ${oneHourChange.padStart(maxPriceLength)}\nDaily:  ${oneDayChange.padStart(maxPriceLength)}\nWeekly: ${oneWeekChange.padStart(maxPriceLength)}\`\`\`\`\`\`Rank:   ${rank.padStart(maxStatsLength)}\nM.Cap:  ${marketCap.padStart(maxStatsLength)}\nVolume: ${volume.padStart(maxStatsLength)}\`\`\``,
+        fields: displayedMarkets.length ? [ 
+          {
+            name: `Exchanges`,
+            value: displayedMarkets.map(({ isBitcoin, exchangeName, url }) => {
+              const hyperlink = `[${exchangeName}](${url})`;
+              return (isBitcoin ? hyperlink : `*${hyperlink}*`);
+            }).join('     ')
+          }
+        ] : undefined,
+        image: this.chartUrl ? {
+          url: this.chartUrl
+        } : undefined
+      }
+    };
+  }
+
+  _getChangeIcon(value) {
     const emojiis = {
-      '100': `:red_car::rocket::full_moon_with_face::moneybag::moneybag:${':100:'.repeat(Math.min(changeValue / 100, 10))}`,
-      '50': ':red_car::rocket::full_moon_with_face:',
-      '25': ':red_car::rocket:',
-      '10': ':red_car:',
-      '5': ':smirk:',
-      '2.5': ':slight_smile:',
+      '100': `:100:`,
+      '50': ':moneybag:',
+      '25': ':full_moon_with_face:',
+      '10': ':rocket:',
+      '5': ':red_car:',
       '1': ':arrow_double_up:',
-      '0': ':sleeping:',
+      '0': ':zzz:',
       '-1': ':arrow_double_down:',
-      '-2.5': ':confounded:',
-      '-5': ':dizzy_face:',
-      '-7.5': ':ambulance:',
-      '-10': ':ambulance::hospital:',
-      '-12.5': ':ambulance::hospital::flag_white:',
-      '-15': `:ambulance::hospital::flag_white:${':skull_crossbones:'.repeat(Math.min(Math.abs(changeValue) / 10, 10))}`
+      '-2.5': ':flag_white:',
+      '-5': ':ambulance:',
+      '-12.5': ':hospital:',
+      '-25': ':skull_crossbones:',
+      '-50': `:poop:`
     };
 
-    if (changeValue >= 100) return emojiis['100'];
-    if (changeValue >= 50) return emojiis['50'];
-    if (changeValue >= 25) return emojiis['25'];
-    if (changeValue >= 10) return emojiis['10'];
-    if (changeValue >= 5) return emojiis['5'];
-    if (changeValue >= 2.5) return emojiis['2.5'];
-    if (changeValue >= 1) return emojiis['1'];
-    if (changeValue >= 0) return emojiis['0'];
+    // If value is positive then find the first emojii whose key is less than or equal to value
+    // If value is negative then find the last emojii whose key is greater than or equal to value.
+    const keys = keysIn(emojiis).sort((a, b) => b - a);
+    const key = value >= 0 ? find(keys, key => value > key) : findLast(keys, key => key > value);
 
-    if (changeValue <= -15) return emojiis['-15'];
-    if (changeValue <= -12.5) return emojiis['-12.5'];
-    if (changeValue <= -10) return emojiis['-10'];
-    if (changeValue <= -7.5) return emojiis['-7.5'];
-    if (changeValue <= -5) return emojiis['-5'];
-    if (changeValue <= -2.5) return emojiis['-2.5'];
-    if (changeValue <= -1) return emojiis['-1'];
-    if (changeValue <= 0) return emojiis['0'];
+    // If the key isn't found then shown nothing
+    return emojiis[key] || ``;
   }
 
 };

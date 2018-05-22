@@ -21,6 +21,13 @@
       "skipFiles": ["<node_internals>/**"],
       "args": ["${workspaceFolder}/test/setup.js", "${workspaceFolder}/test/**/*Test.js"],
       "envFile": "${workspaceFolder}/.env"
-    }
+    },
+    {
+       "name": "Inspect Function",
+       "protocol": "inspector",
+       "type": "node",
+       "request": "attach",
+       "port": 9229
+     }
   ]
 }

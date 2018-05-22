@@ -1,0 +1,10 @@
+cron:
+- description: "pull all coinmarketcap tickers and update coins in database"
+  url: /updateCoins
+  schedule: every 1 mins
+- description: "scrape all coinmarketcap markets and update markets in database"
+  url: /updateMarkets
+  schedule: every 12 hours
+- description: "pull all gdax tickers and update gdax in database"
+  url: /updateGdax
+  schedule: every 1 mins

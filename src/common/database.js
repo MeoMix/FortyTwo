@@ -1,16 +1,24 @@
 const Sequelize = require('sequelize');
-const logger = require('../common/logger.js');
+const CallDefinition = require('../call/callDefinition.js');
+const CoinDefinition = require('../coin/coinDefinition.js');
+const CalendarItemDefinition = require('../calendar/calendarItemDefinition.js');
+const ChannelDefinition = require('../channel/channelDefinition.js');
+const WatchDefinition = require('../watch/watchDefinition.js');
+const MarketDefinition = require('../market/marketDefinition.js');
 
 module.exports = class Database {
 
-  constructor(){
-    const sequelize = new Sequelize(process.env.DB_DATABASE, process.env.DB_USERNAME, process.env.DB_PASSWORD, {
+  constructor(database, username, password, socketPath){
+    console.log(`Creating Sequelize instance for database ${database} as user ${username} // ${password} via socket path: ${socketPath}`);
+
+    this.sequelize = new Sequelize(database, username, password, {
       // Improve security and hide a deprecation warning by limiting operator aliases.
       // http://docs.sequelizejs.com/manual/tutorial/querying.html#operators-security
       operatorsAliases: false,
+      logging: false,
       dialect: 'mysql',
       dialectOptions: {
-        socketPath: process.env.DB_SOCKET_PATH,
+        socketPath,
         // Change MySql2 decimals response from string to Number. Not as worried about precision for now
         decimalNumbers: true
       },
@@ -22,20 +30,28 @@ module.exports = class Database {
       }
     });
 
-    this.sequelize = sequelize;
+    this.callDefinition = CallDefinition(this.sequelize);
+    this.coinDefinition = CoinDefinition(this.sequelize);
+    this.calendarItemDefinition = CalendarItemDefinition(this.sequelize);
+    this.channelDefinition = ChannelDefinition(this.sequelize);
+    this.watchDefinition = WatchDefinition(this.sequelize);
+    this.marketDefinition = MarketDefinition(this.sequelize);
+
+    // TODO: Not sure `belongsTo` is correct usage here.
+    this.callDefinition.belongsTo(this.coinDefinition);
+    this.watchDefinition.belongsTo(this.coinDefinition);
+    this.coinDefinition.hasMany(this.marketDefinition);
   }
 
   async connect(){
     return new Promise(async (resolve, reject) => {
       try {
-        logger.info(`Connecting to database ${process.env.DB_DATABASE} as ${process.env.DB_USERNAME}`);
-
+        console.log(`Connecting to database`);
         await this.sequelize.authenticate();
-
-        logger.debug('Sequelize authenticated');
+        console.log('Sequelize authenticated');
         resolve();
       } catch (error){
-        logger.error(`Failed to connect to database`);
+        console.error(`Failed to connect to database`);
         reject(error);
       }
     });
