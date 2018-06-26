@@ -66,6 +66,7 @@ module.exports = class CoinDetailsCommand {
       const tradedPair = symbol === 'BTC' ? 'USDT' : 'BTC';
       // TODO: Why does this load so slow in production? Also, make it so that the coin details show up and then edit in the chart after?
       await page.goto(`https://www.tradingview.com/chart/?symbol=BINANCE:${symbol}${tradedPair}`, { timeout: 30000 });
+      // TODO: Probably want to use page.evaluate here instead of needing to await a lot.
       // Let the canvas element load on the page so that chart can be modified.
       await page.waitForSelector('.chart-markup-table');
     
